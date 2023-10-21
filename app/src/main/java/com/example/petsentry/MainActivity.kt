@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -33,7 +35,7 @@ class MainActivity : ComponentActivity() {
             PetSentryTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    FirstGreetingText()
+                    WelcomeScreen()
                 }
             }
         }
@@ -41,7 +43,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun FirstGreetingText(modifier: Modifier = Modifier) {
+fun WelcomeScreen(modifier: Modifier = Modifier) {
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -52,7 +54,7 @@ fun FirstGreetingText(modifier: Modifier = Modifier) {
         )
         Text(
             text = "Hello!",
-            fontSize = 80.sp,
+            fontSize = 64.sp,
             textAlign = TextAlign.Center,
             letterSpacing = 28.sp,
             fontWeight = FontWeight.W100
@@ -62,13 +64,13 @@ fun FirstGreetingText(modifier: Modifier = Modifier) {
         )
         Text(
             text = "Welcome",
-            fontSize = 64.sp,
+            fontSize = 48.sp,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.W400
         )
         Text(
             text = "to",
-            fontSize = 64.sp,
+            fontSize = 48.sp,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.W400
         )
@@ -76,8 +78,8 @@ fun FirstGreetingText(modifier: Modifier = Modifier) {
             buildAnnotatedString {
                 withStyle(
                     style = SpanStyle(
-                        color = Color.Blue,
-                        fontSize = 64.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 48.sp,
                         fontWeight = FontWeight.W400
                     )
                 ) {
@@ -85,7 +87,7 @@ fun FirstGreetingText(modifier: Modifier = Modifier) {
                 }
                 withStyle(
                     style = SpanStyle(
-                        fontSize = 64.sp,
+                        fontSize = 48.sp,
                         fontWeight = FontWeight.W400
                     )
                 ) {
@@ -93,6 +95,26 @@ fun FirstGreetingText(modifier: Modifier = Modifier) {
                 }
             }
         )
+        Column(
+            modifier = Modifier
+                           .fillMaxSize(),
+
+            verticalArrangement = Arrangement.SpaceEvenly,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(
+                onClick = {},
+                modifier = Modifier.scale(1.5F)
+            ) {
+                Text(text = "Register")
+            }
+            Button(
+                onClick = {},
+                modifier = Modifier.scale(1.5F)
+            ) {
+                Text(text = "Login")
+            }
+        }
     }
 }
 
@@ -101,8 +123,8 @@ fun FirstGreetingText(modifier: Modifier = Modifier) {
     showSystemUi = true
 )
 @Composable
-fun FirstGreetingTextPreview() {
+fun WelcomeScreenPreview() {
     PetSentryTheme {
-        FirstGreetingText()
+        WelcomeScreen()
     }
 }
