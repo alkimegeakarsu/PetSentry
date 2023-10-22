@@ -10,13 +10,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +39,7 @@ class MainActivity : ComponentActivity() {
             PetSentryTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    WelcomeScreen()
+                    RegisterScreen()
                 }
             }
         }
@@ -103,13 +107,13 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
-                onClick = {},
+                onClick = { /*TODO*/ },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Register")
             }
             Button(
-                onClick = {},
+                onClick = { /*TODO*/ },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Login")
@@ -117,6 +121,111 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+fun RegisterScreen(modifier: Modifier = Modifier) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Spacer(
+            modifier = Modifier.height(40.dp)
+        )
+        Text(
+            text = "Registration",
+            fontSize = 48.sp,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.W400
+        )
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") }
+                )
+                Spacer(
+                    modifier = Modifier.height(40.dp)
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") }
+                )
+            }
+            Button(
+                onClick = { /*TODO*/ },
+                modifier = Modifier.scale(1.5F)
+            ) {
+                Text(text = "Register")
+            }
+        }
+    }
+}
+
+@Composable
+fun LoginScreen(modifier: Modifier = Modifier) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Spacer(
+            modifier = Modifier.height(40.dp)
+        )
+        Text(
+            text = "Login",
+            fontSize = 48.sp,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.W400
+        )
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") }
+                )
+                Spacer(
+                    modifier = Modifier.height(40.dp)
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") }
+                )
+            }
+            Button(
+                onClick = { /*TODO*/ },
+                modifier = Modifier.scale(1.5F)
+            ) {
+                Text(text = "Login")
+            }
+        }
+    }
+}
+
 
 @Preview(
     showBackground = true,
@@ -126,5 +235,27 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 fun WelcomeScreenPreview() {
     PetSentryTheme {
         WelcomeScreen()
+    }
+}
+
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+fun RegisterScreenPreview() {
+    PetSentryTheme {
+        RegisterScreen()
+    }
+}
+
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+fun LoginScreenPreview() {
+    PetSentryTheme {
+        LoginScreen()
     }
 }
