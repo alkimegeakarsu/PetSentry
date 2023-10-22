@@ -29,6 +29,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.petsentry.ui.theme.PetSentryTheme
 
 
@@ -39,7 +43,16 @@ class MainActivity : ComponentActivity() {
             PetSentryTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    RegisterScreen()
+                    val navController = rememberNavController()
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = "welcome"
+                    ) {
+                        composable("welcome") { WelcomeScreen(navController) }
+                        composable("register") { RegisterScreen() }
+                        composable("login") { LoginScreen() }
+                    }
                 }
             }
         }
@@ -47,7 +60,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier) {
+fun WelcomeScreen(navController: NavHostController, modifier: Modifier = Modifier) {
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -107,13 +120,13 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
-                onClick = { /*TODO*/ },
+                onClick = { navController.navigate("register") },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Register")
             }
             Button(
-                onClick = { /*TODO*/ },
+                onClick = { navController.navigate("login") },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Login")
@@ -227,6 +240,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
 }
 
 
+/*
 @Preview(
     showBackground = true,
     showSystemUi = true
@@ -258,4 +272,4 @@ fun LoginScreenPreview() {
     PetSentryTheme {
         LoginScreen()
     }
-}
+}*/
