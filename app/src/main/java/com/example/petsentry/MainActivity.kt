@@ -22,6 +22,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -37,11 +39,16 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.petsentry.ui.theme.PetSentryTheme
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player.REPEAT_MODE_OFF
+import com.google.android.exoplayer2.ui.StyledPlayerView
 
 
 class MainActivity : ComponentActivity() {
@@ -470,7 +477,7 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .padding(top = 40.dp, bottom = 40.dp)
         )
-        // TODO: Livestream here
+        Exoplayer()
     }
 }
 
@@ -502,6 +509,38 @@ fun EventLogScreen(modifier: Modifier = Modifier) {
                 Divider()
             }
         }
+    }
+}
+
+// Livestream
+@Composable
+fun Exoplayer() {
+    val context = LocalContext.current
+
+    val mediaItem = MediaItem.Builder()
+        .setUri("https://fcc3ddae59ed.us-west-2.playback.live-video.net/api/video/v1/us-west-2.893648527354.channel.DmumNckWFTqz.m3u8")
+        .build()
+    val exoPlayer = remember(context, mediaItem) {
+        ExoPlayer.Builder(context)
+            .build()
+            .also { exoPlayer ->
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                exoPlayer.repeatMode = REPEAT_MODE_OFF
+            }
+    }
+
+    DisposableEffect(
+        AndroidView(factory = {
+            StyledPlayerView(context).apply {
+                player = exoPlayer
+                useController = false
+                hideController()
+            }
+        })
+    ) {
+        onDispose { exoPlayer.release() }
     }
 }
 
