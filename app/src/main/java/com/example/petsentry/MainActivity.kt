@@ -1,6 +1,15 @@
 package com.example.petsentry
 
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -49,9 +58,66 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player.REPEAT_MODE_OFF
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import java.io.File
+import java.io.FileInputStream
+import java.io.OutputStream
+import java.util.UUID
 
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private const val REQUEST_ENABLE_BT = 1
+    }
+
+    var bluetoothAdapter: BluetoothAdapter? = null
+
+    // Create a BroadcastReceiver for ACTION_FOUND.
+    private val receiver = object : BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
+        override fun onReceive(context: Context, intent: Intent) {
+            when(intent.action) {
+                BluetoothDevice.ACTION_FOUND -> {
+                    // Discovery has found a device. Get the BluetoothDevice
+                    // object and its info from the Intent.
+                    val device: BluetoothDevice? =
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    val deviceName = device?.name
+                    val deviceHardwareAddress = device?.address // MAC address
+
+                    // Display the name of the discovered device as a toast message
+                    Toast.makeText(context, "Discovered device: $deviceName", Toast.LENGTH_SHORT).show()
+
+                    // Connect to PetSentry
+                    if (deviceName == "Galaxy S8") {
+                        bluetoothAdapter?.cancelDiscovery()
+                        val socket = device.createRfcommSocketToServiceRecord(UUID.fromString("a29a6241-308f-4533-a1ea-3b1882bb64b5"))
+                        socket?.connect()
+
+//                        // Send text data after connection
+//                        val text = "SSID: Password:"
+//                        val outputStream: OutputStream = socket.outputStream
+//                        outputStream.write(text.toByteArray())
+//                        outputStream.close()
+//                        socket?.close()
+
+                        // Send file data after connection
+                        val file = File("test.txt") // replace with your file path
+                        val fileInputStream = FileInputStream(file)
+                        val buffer = ByteArray(file.length().toInt())
+                        fileInputStream.read(buffer)
+                        fileInputStream.close()
+
+                        val outputStream: OutputStream = socket.outputStream
+                        outputStream.write(buffer)
+                        outputStream.close()
+                        socket?.close()
+                    }
+                }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -75,6 +141,28 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // Get Bluetooth adapter
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
+        // Check and enable Bluetooth
+        if (bluetoothAdapter?.isEnabled == false) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+        }
+
+        // Start discovery
+        bluetoothAdapter?.startDiscovery()
+
+        // Register for broadcasts when a device is discovered.
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        registerReceiver(receiver, filter)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Don't forget to unregister the ACTION_FOUND receiver.
+        unregisterReceiver(receiver)
     }
 }
 
