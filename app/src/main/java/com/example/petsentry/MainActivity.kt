@@ -1,9 +1,13 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.petsentry
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -49,6 +53,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,8 +63,7 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player.REPEAT_MODE_OFF
 import com.google.android.exoplayer2.ui.StyledPlayerView
-import java.io.File
-import java.io.FileInputStream
+import java.io.IOException
 import java.io.OutputStream
 import java.util.UUID
 
@@ -68,6 +72,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val REQUEST_ENABLE_BT = 1
     }
+
+    val uuid: UUID = UUID.randomUUID()
 
     var bluetoothAdapter: BluetoothAdapter? = null
 
@@ -82,35 +88,57 @@ class MainActivity : ComponentActivity() {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     val deviceName = device?.name
-                    val deviceHardwareAddress = device?.address // MAC address
 
                     // Display the name of the discovered device as a toast message
                     Toast.makeText(context, "Discovered device: $deviceName", Toast.LENGTH_SHORT).show()
 
-                    // Connect to PetSentry
-                    if (deviceName == "Galaxy S8") {
-                        bluetoothAdapter?.cancelDiscovery()
-                        val socket = device.createRfcommSocketToServiceRecord(UUID.fromString("a29a6241-308f-4533-a1ea-3b1882bb64b5"))
-                        socket?.connect()
+                    // Connect and send data
+                    if (deviceName == "raspberrypi") {
+                        Toast.makeText(context, "Trying to connect", Toast.LENGTH_SHORT).show()
 
-//                        // Send text data after connection
-//                        val text = "SSID: Password:"
-//                        val outputStream: OutputStream = socket.outputStream
-//                        outputStream.write(text.toByteArray())
+                        // Cancel discovery
+                        bluetoothAdapter?.cancelDiscovery()
+
+                        // Get BluetoothSocket
+                        var socket: BluetoothSocket? = null
+
+                        try {
+                            socket = device.createRfcommSocketToServiceRecord(uuid)
+                        } catch (e: IOException) {
+                            Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
+                        }
+
+                        // Connect
+                        try {
+                            socket?.connect()
+                        } catch (connectException: IOException) {
+                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+                            try {
+                                socket?.close()
+                            } catch (closeException: IOException) {
+                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
+                                closeException.printStackTrace()
+                            }
+                        }
+
+                        // Send data and close everything
+                        val text = "SSID: hello, Password: world"
+                        val outputStream: OutputStream? = socket?.outputStream
+                        outputStream?.write(text.toByteArray())
+                        outputStream?.close()
+                        socket?.close()
+
+//                        // Send file data after connection
+//                        val file = File("test.txt") // replace with your file path
+//                        val fileInputStream = FileInputStream(file)
+//                        val buffer = ByteArray(file.length().toInt())
+//                        fileInputStream.read(buffer)
+//                        fileInputStream.close()
+//
+//                        val outputStream: OutputStream? = socket?.outputStream
+//                        outputStream.write(buffer)
 //                        outputStream.close()
 //                        socket?.close()
-
-                        // Send file data after connection
-                        val file = File("test.txt") // replace with your file path
-                        val fileInputStream = FileInputStream(file)
-                        val buffer = ByteArray(file.length().toInt())
-                        fileInputStream.read(buffer)
-                        fileInputStream.close()
-
-                        val outputStream: OutputStream = socket.outputStream
-                        outputStream.write(buffer)
-                        outputStream.close()
-                        socket?.close()
                     }
                 }
             }
@@ -130,7 +158,7 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = "welcome"
                     ) {
-                        composable("welcome") { WelcomeScreen(navController) }
+                        composable("welcome") { WelcomeScreen(navController, bluetoothAdapter) }
                         composable("register") { RegisterScreen(navController) }
                         composable("login") { LoginScreen(navController) }
                         composable("menu") { MenuScreen(navController) }
@@ -142,21 +170,26 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Bluetooth
+        // Request permissions
+        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN), 1)
         // Get Bluetooth adapter
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-
-        // Check and enable Bluetooth
-        if (bluetoothAdapter?.isEnabled == false) {
-            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+        val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
+        val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
+        if (bluetoothAdapter == null) {
+            // Device doesn't support Bluetooth
+            Toast.makeText(this, "This device does not support Bluetooth", Toast.LENGTH_SHORT).show()
+        } else {
+            // Bluetooth is supported
+            // Check and enable Bluetooth
+            if (!bluetoothAdapter.isEnabled) {
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+            }
+            // Register for broadcasts when a device is discovered.
+            val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+            registerReceiver(receiver, filter)
         }
-
-        // Start discovery
-        bluetoothAdapter?.startDiscovery()
-
-        // Register for broadcasts when a device is discovered.
-        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        registerReceiver(receiver, filter)
     }
 
     override fun onDestroy() {
@@ -167,8 +200,10 @@ class MainActivity : ComponentActivity() {
 }
 
 // Screen composables
+@SuppressLint("MissingPermission")
 @Composable
-fun WelcomeScreen(navController: NavHostController, modifier: Modifier = Modifier) {
+fun WelcomeScreen(navController: NavHostController, bluetoothAdapter: BluetoothAdapter?, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -228,7 +263,11 @@ fun WelcomeScreen(navController: NavHostController, modifier: Modifier = Modifie
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
-                onClick = { navController.navigate("register") },
+                onClick = {
+                    bluetoothAdapter?.startDiscovery()
+                    Toast.makeText(context, "Enabled discovery", Toast.LENGTH_SHORT).show()
+                    navController.navigate("register")
+                          },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Register")
