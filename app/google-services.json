@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "256579207477",
+    "project_id": "petsentry-633c1",
+    "storage_bucket": "petsentry-633c1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:256579207477:android:3f5e1cebd851b9cce90c7c",
+        "android_client_info": {
+          "package_name": "com.example.petsentry"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdr6w64C7SHvLt4oX0WYGIqyUGPv9v7UI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
