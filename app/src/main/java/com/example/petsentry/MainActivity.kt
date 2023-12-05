@@ -60,6 +60,9 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player.REPEAT_MODE_OFF
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -70,7 +73,48 @@ import com.google.firebase.database.getValue
 var initialSelectedMode: String? = null
 
 class MainActivity : ComponentActivity() {
+    private lateinit var auth: FirebaseAuth
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Firebase
+        val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
+        val dbRef = database.reference
+
+        auth = Firebase.auth
+
+        val currentUser = auth.currentUser
+
+        dbRef.child("Operation Mode").child("op_mode").get().addOnSuccessListener {
+            initialSelectedMode = it.value.toString()
+            setContent {
+                PetSentryTheme {
+                    // A surface container using the 'background' color from the theme
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        val navController = rememberNavController()
+
+                        NavHost(
+                            navController = navController,
+                            startDestination = if (currentUser != null) "menu" else "welcome"
+                        ) {
+                            composable("welcome") { WelcomeScreen(navController) }
+                            composable("register") { RegisterScreen(navController, auth) }
+                            composable("login") { LoginScreen(navController, auth) }
+                            composable("menu") { MenuScreen(navController, dbRef) }
+                            composable("sensor") { SensorScreen(dbRef) }
+                            composable("livestream") { LivestreamScreen() }
+                            composable("log") { EventLogScreen(dbRef) }
+                        }
+                    }
+                }
+            }
+        }.addOnFailureListener{
+            // Failed to read value
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
 
         // Firebase
         val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
@@ -80,30 +124,6 @@ class MainActivity : ComponentActivity() {
             initialSelectedMode = it.value.toString()
         }.addOnFailureListener{
             // Failed to read value
-        }
-
-
-        super.onCreate(savedInstanceState)
-        setContent {
-            PetSentryTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    val navController = rememberNavController()
-
-                    NavHost(
-                        navController = navController,
-                        startDestination = "welcome"
-                    ) {
-                        composable("welcome") { WelcomeScreen(navController) }
-                        composable("register") { RegisterScreen(navController) }
-                        composable("login") { LoginScreen(navController) }
-                        composable("menu") { MenuScreen(navController, dbRef) }
-                        composable("sensor") { SensorScreen(dbRef) }
-                        composable("livestream") { LivestreamScreen() }
-                        composable("log") { EventLogScreen(dbRef) }
-                    }
-                }
-            }
         }
     }
 }
@@ -190,9 +210,10 @@ fun WelcomeScreen(navController: NavHostController, modifier: Modifier = Modifie
 }
 
 @Composable
-fun RegisterScreen(navController: NavHostController, modifier: Modifier = Modifier) {
+fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column(
         modifier = modifier,
@@ -232,7 +253,24 @@ fun RegisterScreen(navController: NavHostController, modifier: Modifier = Modifi
                 )
             }
             Button(
-                onClick = { navController.navigate("menu") },
+                onClick = {
+                    if (email.isNotBlank() && password.isNotBlank()) {
+                        auth.createUserWithEmailAndPassword(email, password)
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    // Register success
+                                    val currentUser = auth.currentUser
+                                    // Navigate to main menu
+                                    navController.navigate("menu")
+                                } else {
+                                    // Register fail
+                                    Toast.makeText(context, "Registration failed! Try again.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    } else {
+                        Toast.makeText(context, "Please fill in both fields.", Toast.LENGTH_SHORT).show()
+                    }
+                },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Register")
@@ -242,9 +280,10 @@ fun RegisterScreen(navController: NavHostController, modifier: Modifier = Modifi
 }
 
 @Composable
-fun LoginScreen(navController: NavHostController, modifier: Modifier = Modifier) {
+fun LoginScreen(navController: NavHostController, auth: FirebaseAuth, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column(
         modifier = modifier,
@@ -284,7 +323,24 @@ fun LoginScreen(navController: NavHostController, modifier: Modifier = Modifier)
                 )
             }
             Button(
-                onClick = { navController.navigate("menu") },
+                onClick = {
+                    if (email.isNotBlank() && password.isNotBlank()) {
+                        auth.signInWithEmailAndPassword(email, password)
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    // Sign in success
+                                    val currentUser = auth.currentUser
+                                    // Navigate to main menu
+                                    navController.navigate("menu")
+                                } else {
+                                    // Sign in fail
+                                    Toast.makeText(context, "Sign in failed! Try again.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    } else {
+                        Toast.makeText(context, "Please fill in both fields.", Toast.LENGTH_SHORT).show()
+                    }
+                },
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Login")
