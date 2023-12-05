@@ -615,6 +615,7 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun LivestreamScreen(modifier: Modifier = Modifier) {
     Column(
@@ -632,7 +633,7 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
         )
         //Exoplayer()
         // Declare a string that contains a url
-        val mUrl = "https://www.geeksforgeeks.org"
+        val mUrl = "https://player.vimeo.com/video/891370886"
 
         // Adding a WebView inside AndroidView
         // with layout as full screen
@@ -643,6 +644,10 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 webViewClient = WebViewClient()
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                }
                 loadUrl(mUrl)
             }
         }, update = {
