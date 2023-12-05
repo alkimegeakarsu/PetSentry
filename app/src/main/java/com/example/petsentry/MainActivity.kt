@@ -2,6 +2,9 @@ package com.example.petsentry
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.ViewGroup
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -571,7 +574,24 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .padding(top = 40.dp, bottom = 40.dp)
         )
-        Exoplayer()
+        //Exoplayer()
+        // Declare a string that contains a url
+        val mUrl = "https://www.geeksforgeeks.org"
+
+        // Adding a WebView inside AndroidView
+        // with layout as full screen
+        AndroidView(factory = {
+            WebView(it).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                webViewClient = WebViewClient()
+                loadUrl(mUrl)
+            }
+        }, update = {
+            it.loadUrl(mUrl)
+        })
     }
 }
 
