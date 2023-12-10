@@ -83,6 +83,7 @@ var initialSelectedMode: String? = null
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
