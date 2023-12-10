@@ -1,11 +1,17 @@
 package com.example.petsentry
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -59,6 +65,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -83,7 +90,25 @@ var initialSelectedMode: String? = null
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
+
+    private val receiver = object : BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
+        override fun onReceive(context: Context, intent: Intent) {
+            when(intent.action) {
+                BluetoothDevice.ACTION_FOUND -> {
+                    // Discovery has found a device. Get the BluetoothDevice
+                    // object and its info from the Intent.
+                    val device: BluetoothDevice? =
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    val deviceName = device?.name
+                    val deviceHardwareAddress = device?.address // MAC address
+                    Toast.makeText(context, "Device name: $deviceName", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
     
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -101,7 +126,7 @@ class MainActivity : ComponentActivity() {
             "Running Notifications",
             NotificationManager.IMPORTANCE_HIGH
         )
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
 
         // Start foreground service
@@ -109,6 +134,31 @@ class MainActivity : ComponentActivity() {
             it.action = MyForegroundService.Actions.START.toString()
             startService(it)
         }
+
+        // Bluetooth
+        // Request permissions
+        ActivityCompat.requestPermissions(this, arrayOf(
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN),
+            1)
+        // Get BluetoothAdapter
+        val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
+        val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
+        // Enable Bluetooth if not enabled
+        if (bluetoothAdapter?.isEnabled == false) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivityForResult(enableBtIntent, 1)
+        }
+        // Register for broadcasts when a device is discovered.
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        registerReceiver(receiver, filter)
+        // Start discovery
+        bluetoothAdapter?.startDiscovery()
+
 
         dbRef.child("Operation Mode").child("op_mode").get().addOnSuccessListener {
             initialSelectedMode = it.value.toString()
@@ -149,6 +199,12 @@ class MainActivity : ComponentActivity() {
         }.addOnFailureListener{
             // Failed to read value
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Unregister the ACTION_FOUND receiver.
+        unregisterReceiver(receiver)
     }
 }
 
