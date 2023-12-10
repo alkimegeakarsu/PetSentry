@@ -1,13 +1,21 @@
 package com.example.petsentry
 
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,6 +59,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.NotificationCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -85,6 +94,21 @@ class MainActivity : ComponentActivity() {
 
         val currentUser = auth.currentUser
 
+        // Foreground service notification
+        val channel = NotificationChannel(
+            "running_channel",
+            "Running Notifications",
+            NotificationManager.IMPORTANCE_HIGH
+        )
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+
+        // Start foreground service
+        Intent(applicationContext, MyForegroundService::class.java).also {
+            it.action = MyForegroundService.Actions.START.toString()
+            startService(it)
+        }
+
         dbRef.child("Operation Mode").child("op_mode").get().addOnSuccessListener {
             initialSelectedMode = it.value.toString()
             setContent {
@@ -115,7 +139,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-
         // Firebase
         val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
         val dbRef = database.reference
@@ -125,6 +148,36 @@ class MainActivity : ComponentActivity() {
         }.addOnFailureListener{
             // Failed to read value
         }
+    }
+}
+
+
+class MyForegroundService : Service() {
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when(intent?.action) {
+            Actions.START.toString() -> {
+                start()
+                
+            }
+            Actions.STOP.toString() -> stopSelf()
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun start() {
+        val notification = NotificationCompat.Builder(this, "running_channel")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Listening for updates!")
+            .build()
+        startForeground(1, notification)
+    }
+
+    enum class Actions {
+        START, STOP
     }
 }
 
