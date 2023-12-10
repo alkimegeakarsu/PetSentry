@@ -153,6 +153,8 @@ class MainActivity : ComponentActivity() {
 
 
 class MyForegroundService : Service() {
+    private lateinit var auth: FirebaseAuth
+
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
@@ -161,7 +163,31 @@ class MyForegroundService : Service() {
         when(intent?.action) {
             Actions.START.toString() -> {
                 start()
-                
+                // Firebase database init
+                val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
+                val dbRef = database.reference
+
+                auth = Firebase.auth
+
+                val currentUser = auth.currentUser
+
+                // Create listener
+                dbRef.child("Event Log").child("0").addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        // Send notification
+                        val lastEvent = dataSnapshot.getValue<String>()
+                        val notification = NotificationCompat.Builder(this@MyForegroundService, "running_channel")
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .setContentTitle("New Event!")
+                            .setContentText("Latest event: $lastEvent")
+                            .build()
+                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        notificationManager.notify(2, notification)
+                    }
+                    override fun onCancelled(error: DatabaseError) {
+                        // Failed to read value
+                    }
+                })
             }
             Actions.STOP.toString() -> stopSelf()
         }
