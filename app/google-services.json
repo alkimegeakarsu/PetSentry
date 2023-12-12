@@ -1,13 +1,14 @@
 {
   "project_info": {
-    "project_number": "256579207477",
-    "project_id": "petsentry-633c1",
-    "storage_bucket": "petsentry-633c1.appspot.com"
+    "project_number": "398117959968",
+    "firebase_url": "https://petsentry495-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "petsentry495",
+    "storage_bucket": "petsentry495.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:256579207477:android:3f5e1cebd851b9cce90c7c",
+        "mobilesdk_app_id": "1:398117959968:android:d0c467150f611118807f45",
         "android_client_info": {
           "package_name": "com.example.petsentry"
         }
@@ -15,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBdr6w64C7SHvLt4oX0WYGIqyUGPv9v7UI"
+          "current_key": "AIzaSyC7XH2zZmrXxK7CQOLurtZUjDpaWVxnPio"
         }
       ],
       "services": {

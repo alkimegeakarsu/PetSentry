@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                         // Cancel discovery
                         bluetoothAdapter?.cancelDiscovery()
                         // UUID
-                        val MY_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+                        val MY_UUID: UUID = UUID.fromString("00001801-0000-1000-8000-00805F9B34FB")
                         // Get BluetoothSocket
                         var socket: BluetoothSocket? = null
                         try {
@@ -120,17 +120,18 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
                         }
                         // Connect
-                        try {
-                            socket?.connect()
-                        } catch (connectException: IOException) {
-                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
-                            try {
-                                socket?.close()
-                            } catch (closeException: IOException) {
-                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
-                                closeException.printStackTrace()
-                            }
-                        }
+                        socket?.connect()
+//                        try {
+//                            socket?.connect()
+//                        } catch (connectException: IOException) {
+//                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+//                            try {
+//                                socket?.close()
+//                            } catch (closeException: IOException) {
+//                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
+//                                closeException.printStackTrace()
+//                            }
+//                        }
                         // Send data and close everything
                         val text = "SSID: $wifiSSID, Password: $wifiPassword"
                         val outputStream: OutputStream? = socket?.outputStream
@@ -148,7 +149,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Firebase
-        val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
+        val database = FirebaseDatabase.getInstance("https://petsentry495-default-rtdb.europe-west1.firebasedatabase.app/")
         val dbRef = database.reference
 
         auth = Firebase.auth
@@ -224,7 +225,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         // Firebase
-        val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
+        val database = FirebaseDatabase.getInstance("https://petsentry495-default-rtdb.europe-west1.firebasedatabase.app/")
         val dbRef = database.reference
 
         dbRef.child("Operation Mode").child("op_mode").get().addOnSuccessListener {
@@ -254,7 +255,7 @@ class MyForegroundService : Service() {
             Actions.START.toString() -> {
                 start()
                 // Firebase database init
-                val database = FirebaseDatabase.getInstance("https://petsentry-633c1-default-rtdb.europe-west1.firebasedatabase.app/")
+                val database = FirebaseDatabase.getInstance("https://petsentry495-default-rtdb.europe-west1.firebasedatabase.app/")
                 val dbRef = database.reference
 
                 auth = Firebase.auth
