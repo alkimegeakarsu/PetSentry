@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.petsentry
 
 import android.Manifest
@@ -8,11 +10,11 @@ import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.ViewGroup
@@ -21,7 +23,6 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,7 +44,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -72,10 +72,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.petsentry.ui.theme.PetSentryTheme
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.Player.REPEAT_MODE_OFF
-import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -85,11 +81,19 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.getValue
+import java.io.IOException
+import java.io.OutputStream
+import java.util.UUID
 
 var initialSelectedMode: String? = null
+var wifiSSID: String? = "hello"
+var wifiPassword: String? = "world"
 
 class MainActivity : ComponentActivity() {
+
     private lateinit var auth: FirebaseAuth
+
+    var bluetoothAdapter: BluetoothAdapter? = null
 
     private val receiver = object : BroadcastReceiver() {
         @SuppressLint("MissingPermission")
@@ -101,8 +105,39 @@ class MainActivity : ComponentActivity() {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     val deviceName = device?.name
-                    val deviceHardwareAddress = device?.address // MAC address
-                    Toast.makeText(context, "Device name: $deviceName", Toast.LENGTH_SHORT).show()
+                    // Connect to the device
+                    if (deviceName == "PetSentry") {
+                        Toast.makeText(this@MainActivity, "Connecting...", Toast.LENGTH_SHORT).show()
+                        // Cancel discovery
+                        bluetoothAdapter?.cancelDiscovery()
+                        // UUID
+                        val MY_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+                        // Get BluetoothSocket
+                        var socket: BluetoothSocket? = null
+                        try {
+                            socket = device.createRfcommSocketToServiceRecord(MY_UUID)
+                        } catch (e: IOException) {
+                            Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
+                        }
+                        // Connect
+                        try {
+                            socket?.connect()
+                        } catch (connectException: IOException) {
+                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+                            try {
+                                socket?.close()
+                            } catch (closeException: IOException) {
+                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
+                                closeException.printStackTrace()
+                            }
+                        }
+                        // Send data and close everything
+                        val text = "SSID: $wifiSSID, Password: $wifiPassword"
+                        val outputStream: OutputStream? = socket?.outputStream
+                        outputStream?.write(text.toByteArray())
+                        outputStream?.close()
+                        socket?.close()
+                    }
                 }
             }
         }
@@ -147,7 +182,7 @@ class MainActivity : ComponentActivity() {
             1)
         // Get BluetoothAdapter
         val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
-        val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
+        bluetoothAdapter = bluetoothManager.adapter
         // Enable Bluetooth if not enabled
         if (bluetoothAdapter?.isEnabled == false) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -156,8 +191,6 @@ class MainActivity : ComponentActivity() {
         // Register for broadcasts when a device is discovered.
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         registerReceiver(receiver, filter)
-        // Start discovery
-        bluetoothAdapter?.startDiscovery()
 
 
         dbRef.child("Operation Mode").child("op_mode").get().addOnSuccessListener {
@@ -173,7 +206,7 @@ class MainActivity : ComponentActivity() {
                             startDestination = if (currentUser != null) "menu" else "welcome"
                         ) {
                             composable("welcome") { WelcomeScreen(navController) }
-                            composable("register") { RegisterScreen(navController, auth) }
+                            composable("register") { RegisterScreen(navController, auth, bluetoothAdapter) }
                             composable("login") { LoginScreen(navController, auth) }
                             composable("menu") { MenuScreen(navController, dbRef) }
                             composable("sensor") { SensorScreen(dbRef) }
@@ -345,8 +378,9 @@ fun WelcomeScreen(navController: NavHostController, modifier: Modifier = Modifie
     }
 }
 
+@SuppressLint("MissingPermission")
 @Composable
-fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, modifier: Modifier = Modifier) {
+fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, bluetoothAdapter: BluetoothAdapter?, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -398,6 +432,9 @@ fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, modifie
                                     val currentUser = auth.currentUser
                                     // Navigate to main menu
                                     navController.navigate("menu")
+                                    // Start discovery
+                                    bluetoothAdapter?.startDiscovery()
+                                    Toast.makeText(context, "Bluetooth discovery", Toast.LENGTH_SHORT).show()
                                 } else {
                                     // Register fail
                                     Toast.makeText(context, "Registration failed! Try again.", Toast.LENGTH_SHORT).show()
@@ -830,38 +867,5 @@ fun EventLogScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
                 Divider()
             }
         }
-    }
-}
-
-// Livestream
-@SuppressLint("OpaqueUnitKey")
-@Composable
-fun Exoplayer() {
-    val context = LocalContext.current
-
-    val mediaItem = MediaItem.Builder()
-        .setUri("https://fcc3ddae59ed.us-west-2.playback.live-video.net/api/video/v1/us-west-2.893648527354.channel.DmumNckWFTqz.m3u8")
-        .build()
-    val exoPlayer = remember(context, mediaItem) {
-        ExoPlayer.Builder(context)
-            .build()
-            .also { exoPlayer ->
-                exoPlayer.setMediaItem(mediaItem)
-                exoPlayer.prepare()
-                exoPlayer.playWhenReady = true
-                exoPlayer.repeatMode = REPEAT_MODE_OFF
-            }
-    }
-
-    DisposableEffect(
-        AndroidView(factory = {
-            StyledPlayerView(context).apply {
-                player = exoPlayer
-                useController = false
-                hideController()
-            }
-        })
-    ) {
-        onDispose { exoPlayer.release() }
     }
 }
