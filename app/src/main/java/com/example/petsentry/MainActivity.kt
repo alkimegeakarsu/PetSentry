@@ -211,7 +211,7 @@ class MainActivity : ComponentActivity() {
                             composable("login") { LoginScreen(navController, auth) }
                             composable("menu") { MenuScreen(navController, dbRef) }
                             composable("sensor") { SensorScreen(dbRef) }
-                            composable("livestream") { LivestreamScreen() }
+                            composable("livestream") { LivestreamScreen(dbRef) }
                             composable("log") { EventLogScreen(dbRef) }
                         }
                     }
@@ -771,7 +771,7 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun LivestreamScreen(modifier: Modifier = Modifier) {
+fun LivestreamScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -783,9 +783,8 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.W400,
             modifier = Modifier
-                .padding(top = 40.dp, bottom = 40.dp)
+                .padding(top = 50.dp, bottom = 100.dp)
         )
-        //Exoplayer()
         // Declare a string that contains a url
         val mUrl = "https://player.vimeo.com/video/891370886"
 
@@ -795,7 +794,7 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
             WebView(it).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+                    810
                 )
                 webViewClient = WebViewClient()
                 settings.apply {
@@ -807,6 +806,29 @@ fun LivestreamScreen(modifier: Modifier = Modifier) {
         }, update = {
             it.loadUrl(mUrl)
         })
+        Row(
+            modifier = Modifier
+                .padding(top = 90.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = { dbRef.child("Livestream").child("start_stream").setValue(1) },
+                modifier = Modifier
+                    .scale(1.5F)
+                    .padding(end = 30.dp)
+            ) {
+                Text(text = "Start")
+            }
+            Button(
+                onClick = { dbRef.child("Livestream").child("start_stream").setValue(0) },
+                modifier = Modifier
+                    .scale(1.5F)
+                    .padding(start = 30.dp)
+            ) {
+                Text(text = "Stop")
+            }
+        }
     }
 }
 
