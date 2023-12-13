@@ -17,6 +17,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -111,7 +112,7 @@ class MainActivity : ComponentActivity() {
                         // Cancel discovery
                         bluetoothAdapter?.cancelDiscovery()
                         // UUID
-                        val MY_UUID: UUID = UUID.fromString("00001801-0000-1000-8000-00805F9B34FB")
+                        val MY_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
                         // Get BluetoothSocket
                         var socket: BluetoothSocket? = null
                         try {
@@ -120,7 +121,13 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
                         }
                         // Connect
-                        socket?.connect()
+                        while (socket?.isConnected == false) {
+                            try {
+                                socket.connect()
+                            } catch (e: Exception) {
+                                Log.d("DEVICE_CONNECT_FAIL", e.toString())
+                            }
+                        }
 //                        try {
 //                            socket?.connect()
 //                        } catch (connectException: IOException) {
