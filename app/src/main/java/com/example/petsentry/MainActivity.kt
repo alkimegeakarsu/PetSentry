@@ -85,6 +85,7 @@ import com.google.firebase.database.getValue
 import java.io.IOException
 import java.io.OutputStream
 import java.util.UUID
+import kotlin.concurrent.thread
 
 var initialSelectedMode: String? = null
 var wifiSSID: String? = "hello"
@@ -121,30 +122,40 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
                         }
                         // Connect
-                        while (socket?.isConnected == false) {
-                            try {
-                                socket.connect()
-                            } catch (e: Exception) {
-                                Log.d("DEVICE_CONNECT_FAIL", e.toString())
-                            }
-                        }
-//                        try {
-//                            socket?.connect()
-//                        } catch (connectException: IOException) {
-//                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
-//                            try {
-//                                socket?.close()
-//                            } catch (closeException: IOException) {
-//                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
-//                                closeException.printStackTrace()
+//                        thread {
+//                            while (socket?.isConnected == false) {
+//                                try {
+//                                    socket.connect()
+//                                } catch (e: Exception) {
+//                                   Log.d("DEVICE_CONNECT_FAIL", e.toString())
+//                                }
 //                            }
+//                            // Send data and close everything
+//                            val text = "SSID: $wifiSSID, Password: $wifiPassword"
+//                            val outputStream: OutputStream? = socket?.outputStream
+//                            outputStream?.write(text.toByteArray())
+//                            outputStream?.close()
+//                            socket?.close()
 //                        }
-                        // Send data and close everything
-                        val text = "SSID: $wifiSSID, Password: $wifiPassword"
-                        val outputStream: OutputStream? = socket?.outputStream
-                        outputStream?.write(text.toByteArray())
-                        outputStream?.close()
-                        socket?.close()
+                        thread {
+                            try {
+                                socket?.connect()
+                            } catch (connectException: IOException) {
+                                Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+                                try {
+                                    socket?.close()
+                                } catch (closeException: IOException) {
+                                    Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
+                                    closeException.printStackTrace()
+                                }
+                            }
+                            // Send data and close everything
+                            val text = "SSID: $wifiSSID, Password: $wifiPassword"
+                            val outputStream: OutputStream? = socket?.outputStream
+                            outputStream?.write(text.toByteArray())
+                            outputStream?.close()
+                            socket?.close()
+                        }
                     }
                 }
             }
