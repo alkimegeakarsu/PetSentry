@@ -623,7 +623,6 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
     var buttonsEnabled by remember { mutableStateOf(false) }
     var foodWeight by remember { mutableIntStateOf(0) }
     var waterLevel by remember { mutableStateOf("Low") }
-    var reserveLevel by remember { mutableStateOf("Low") }
     var fillTo by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -647,16 +646,6 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
         dbRef.child("Water").child("water_level").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 waterLevel = dataSnapshot.getValue<String>()!!
-            }
-            override fun onCancelled(error: DatabaseError) {
-                // Failed to read value
-            }
-        })
-    }
-    LaunchedEffect(key1 = dbRef) {
-        dbRef.child("Water").child("reserve_level").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                reserveLevel = dataSnapshot.getValue<String>()!!
             }
             override fun onCancelled(error: DatabaseError) {
                 // Failed to read value
@@ -759,15 +748,6 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
                 )
                 Text(
                     text = "Bowl level: $waterLevel",
-                    fontSize = 24.sp,
-                    textAlign = TextAlign.Left,
-                    fontWeight = FontWeight.W400,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 24.dp, bottom = 8.dp)
-                )
-                Text(
-                    text = "Reserve level: $reserveLevel",
                     fontSize = 24.sp,
                     textAlign = TextAlign.Left,
                     fontWeight = FontWeight.W400,
