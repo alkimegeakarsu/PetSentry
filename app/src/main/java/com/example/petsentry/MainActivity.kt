@@ -15,6 +15,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.view.ViewGroup
@@ -23,6 +24,7 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,6 +46,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -72,6 +75,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.petsentry.ui.theme.PetSentryTheme
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player.REPEAT_MODE_OFF
+import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -84,10 +91,18 @@ import com.google.firebase.database.getValue
 import java.io.IOException
 import java.io.OutputStream
 import java.util.UUID
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
+import java.io.File
 
 var initialSelectedMode: String? = null
 var wifiSSID: String? = "hello"
 var wifiPassword: String? = "world"
+
+var audioRef: StorageReference? = null
+lateinit var localFile: File
+lateinit var absolutePath: String
+lateinit var uri: String
 
 class MainActivity : ComponentActivity() {
 
@@ -153,8 +168,11 @@ class MainActivity : ComponentActivity() {
         val dbRef = database.reference
 
         auth = Firebase.auth
-
         val currentUser = auth.currentUser
+
+        val storage = FirebaseStorage.getInstance("gs://petsentry495.appspot.com")
+        val storageRef = storage.reference
+
 
         // Foreground service notification
         val channel = NotificationChannel(
@@ -212,7 +230,9 @@ class MainActivity : ComponentActivity() {
                             composable("menu") { MenuScreen(navController, dbRef) }
                             composable("sensor") { SensorScreen(dbRef) }
                             composable("livestream") { LivestreamScreen(dbRef) }
-                            composable("log") { EventLogScreen(dbRef) }
+                            composable("log") { EventLogScreen(navController, dbRef, storageRef) }
+                            composable("download") { EventDownloadScreen(navController) }
+                            composable("listen") { EventListenScreen() }
                         }
                     }
                 }
@@ -833,7 +853,7 @@ fun LivestreamScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun EventLogScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
+fun EventLogScreen(navController: NavHostController, dbRef: DatabaseReference, storageRef: StorageReference, modifier: Modifier = Modifier) {
 
     //var logItems = remember { mutableStateListOf("") }
     val logItems = remember { mutableStateOf(listOf<String>()) }
@@ -865,10 +885,107 @@ fun EventLogScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
         LazyColumn {
             items(logItems.value) { item ->
                 ListItem(
-                    headlineContent = { Text(item) }
+                    headlineContent = { Text(item) },
+                    modifier = Modifier.clickable {
+                        // Get audio database ref
+                        audioRef = storageRef.child("$item.wav")
+                        // Navigate to EventListenScreen
+                        navController.navigate("download")
+                    }
                 )
                 Divider()
             }
         }
+    }
+}
+
+@Composable
+fun EventDownloadScreen(navController: NavHostController, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    // Download audio file
+    LaunchedEffect(key1 = 1) {
+        localFile = File.createTempFile("audio", ".wav")
+        absolutePath = localFile.absolutePath
+        uri = Uri.fromFile(localFile).toString()
+        audioRef?.getFile(localFile)?.addOnSuccessListener {
+            // Local temp file has been created
+            Toast.makeText(context, "File downloaded", Toast.LENGTH_SHORT).show()
+        }?.addOnFailureListener {
+            // Handle any errors
+            Toast.makeText(context, "File download failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = "Download",
+            fontSize = 40.sp,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.W400,
+            modifier = Modifier
+                .padding(top = 50.dp, bottom = 100.dp)
+        )
+        Button(
+            onClick = { navController.navigate("listen") },
+            modifier = Modifier.scale(1.5F)
+        ) {
+            Text(text = "Listen")
+        }
+    }
+}
+
+@Composable
+fun EventListenScreen(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = "Listen",
+            fontSize = 40.sp,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.W400,
+            modifier = Modifier
+                .padding(top = 50.dp, bottom = 100.dp)
+        )
+        Exoplayer(uri)
+    }
+}
+
+
+// Other functions
+@SuppressLint("OpaqueUnitKey")
+@Composable
+fun Exoplayer(filePath: String) {
+    val context = LocalContext.current
+
+    val mediaItem = MediaItem.Builder()
+        .setUri(filePath)
+        .build()
+    val exoPlayer = remember(context, mediaItem) {
+        ExoPlayer.Builder(context)
+            .build()
+            .also { exoPlayer ->
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                exoPlayer.repeatMode = REPEAT_MODE_OFF
+            }
+    }
+
+    DisposableEffect(
+        AndroidView(factory = {
+            StyledPlayerView(context).apply {
+                player = exoPlayer
+                useController = false
+                hideController()
+            }
+        })
+    ) {
+        onDispose { exoPlayer.release() }
     }
 }
