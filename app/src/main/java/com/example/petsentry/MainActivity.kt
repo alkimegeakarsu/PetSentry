@@ -711,18 +711,10 @@ fun MenuScreen(navController: NavHostController, dbRef: DatabaseReference, modif
 
 @Composable
 fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
-    val selectedMode = LocalSelectedMode.current
-    var buttonsEnabled by remember { mutableStateOf(false) }
     var foodWeight by remember { mutableIntStateOf(0) }
     var waterLevel by remember { mutableStateOf("Low") }
     var fillTo by remember { mutableStateOf("") }
     val context = LocalContext.current
-
-    if (selectedMode.value == "Automatic") {
-        buttonsEnabled = false
-    } else if (selectedMode.value == "Manual") {
-        buttonsEnabled = true
-    }
 
     LaunchedEffect(key1 = dbRef) {
         dbRef.child("Food").child("bowl_weight").addValueEventListener(object : ValueEventListener {
@@ -807,7 +799,6 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
                         .padding(bottom = 16.dp)
                 )
                 Button(
-                    enabled = buttonsEnabled,
                     onClick = {
                         if (fillTo.toIntOrNull() == null) {
                             Toast.makeText(context, "Invalid input! Try again.", Toast.LENGTH_SHORT).show()
@@ -848,7 +839,6 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
                         .padding(start = 24.dp, bottom = 16.dp)
                 )
                 Button(
-                    enabled = buttonsEnabled,
                     onClick = {
                         dbRef.child("Water").child("fill_water_now").setValue(1)
                     },
