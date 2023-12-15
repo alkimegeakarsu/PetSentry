@@ -96,8 +96,10 @@ import com.google.firebase.storage.StorageReference
 import java.io.File
 
 var initialSelectedMode: String? = null
-var wifiSSID: String? = "hello"
-var wifiPassword: String? = "world"
+var wifiSsidG: String? = null
+var wifiPasswordG: String? = null
+var userEmailG: String? = null
+var userPasswordG: String? = null
 
 var audioRef: StorageReference? = null
 lateinit var localFile: File
@@ -105,7 +107,6 @@ lateinit var absolutePath: String
 lateinit var uri: String
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var auth: FirebaseAuth
 
     var bluetoothAdapter: BluetoothAdapter? = null
@@ -126,33 +127,40 @@ class MainActivity : ComponentActivity() {
                         // Cancel discovery
                         bluetoothAdapter?.cancelDiscovery()
                         // UUID
-                        val MY_UUID: UUID = UUID.fromString("1a268a02-4069-4e71-9c7a-a1a6d95a4d20")
+                        val myUuid: UUID = UUID.fromString("1a268a02-4069-4e71-9c7a-a1a6d95a4d20")
                         // Get BluetoothSocket
                         var socket: BluetoothSocket? = null
                         try {
-                            socket = device.createRfcommSocketToServiceRecord(MY_UUID)
+                            socket = device.createRfcommSocketToServiceRecord(myUuid)
                         } catch (e: IOException) {
                             Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
                         }
                         // Connect
-                        //socket?.connect()
-                        try {
-                            socket?.connect()
-                        } catch (connectException: IOException) {
-                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+                        var counter = 0
+                        val maxTrials = 3
+
+                        while (counter < maxTrials) {
                             try {
-                                socket?.close()
-                            } catch (closeException: IOException) {
-                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
-                                closeException.printStackTrace()
+                                socket?.connect()
+                                break
+                            } catch (connectException: IOException) {
+                                Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+                                try {
+                                    socket?.close()
+                                } catch (closeException: IOException) {
+                                    Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
+                                    closeException.printStackTrace()
+                                }
                             }
+                            counter++
                         }
                         // Send data and close everything
-                        val text = "SSID: $wifiSSID, Password: $wifiPassword"
+                        val text = "userEmail: '$userEmailG', userPassword: '$userPasswordG', wifiSsid: '$wifiSsidG', wifiPassword: '$wifiPasswordG'"
                         val outputStream: OutputStream? = socket?.outputStream
                         outputStream?.write(text.toByteArray())
                         outputStream?.close()
                         socket?.close()
+                        Toast.makeText(context, "Data sent!", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -225,7 +233,8 @@ class MainActivity : ComponentActivity() {
                             startDestination = if (currentUser != null) "menu" else "welcome"
                         ) {
                             composable("welcome") { WelcomeScreen(navController) }
-                            composable("register") { RegisterScreen(navController, auth, bluetoothAdapter) }
+                            composable("register") { RegisterScreen(navController, auth) }
+                            composable("wifi") { WifiScreen(navController, bluetoothAdapter) }
                             composable("login") { LoginScreen(navController, auth) }
                             composable("menu") { MenuScreen(navController, dbRef) }
                             composable("sensor") { SensorScreen(dbRef) }
@@ -279,9 +288,6 @@ class MyForegroundService : Service() {
                 val dbRef = database.reference
 
                 auth = Firebase.auth
-
-                val currentUser = auth.currentUser
-
                 // Create listener
                 dbRef.child("Event Log").child("0").addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(dataSnapshot: DataSnapshot) {
@@ -401,7 +407,7 @@ fun WelcomeScreen(navController: NavHostController, modifier: Modifier = Modifie
 
 @SuppressLint("MissingPermission")
 @Composable
-fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, bluetoothAdapter: BluetoothAdapter?, modifier: Modifier = Modifier) {
+fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -450,12 +456,11 @@ fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, bluetoo
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     // Register success
-                                    val currentUser = auth.currentUser
-                                    // Navigate to main menu
-                                    navController.navigate("menu")
-                                    // Start discovery
-                                    bluetoothAdapter?.startDiscovery()
-                                    Toast.makeText(context, "Bluetooth discovery", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                                    userEmailG = email
+                                    userPasswordG = password
+                                    // Navigate to wifi
+                                    navController.navigate("wifi")
                                 } else {
                                     // Register fail
                                     Toast.makeText(context, "Registration failed! Try again.", Toast.LENGTH_SHORT).show()
@@ -468,6 +473,72 @@ fun RegisterScreen(navController: NavHostController, auth: FirebaseAuth, bluetoo
                 modifier = Modifier.scale(1.5F)
             ) {
                 Text(text = "Register")
+            }
+        }
+    }
+}
+
+@SuppressLint("MissingPermission")
+@Composable
+fun WifiScreen(navController: NavHostController, bluetoothAdapter: BluetoothAdapter?, modifier: Modifier = Modifier) {
+    var wifiSsid by remember { mutableStateOf("") }
+    var wifiPassword by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Spacer(
+            modifier = Modifier.height(40.dp)
+        )
+        Text(
+            text = "Wi-Fi Setup",
+            fontSize = 40.sp,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.W400
+        )
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                OutlinedTextField(
+                    value = wifiSsid,
+                    onValueChange = {
+                        wifiSsid = it
+                        wifiSsidG = wifiSsid
+                    },
+                    label = { Text("SSID") }
+                )
+                Spacer(
+                    modifier = Modifier.height(40.dp)
+                )
+                OutlinedTextField(
+                    value = wifiPassword,
+                    onValueChange = {
+                        wifiPassword = it
+                        wifiPasswordG = wifiPassword
+                    },
+                    label = { Text("Password") }
+                )
+            }
+            Button(
+                onClick = {
+                    // Send wifi credentials to Raspberry Pi via Bluetooth
+                    bluetoothAdapter?.startDiscovery()
+                    Toast.makeText(context, "Started discovery!", Toast.LENGTH_SHORT).show()
+                    // Navigate to main menu
+                    navController.navigate("menu")
+                },
+                modifier = Modifier.scale(1.5F)
+            ) {
+                Text(text = "Connect")
             }
         }
     }
@@ -523,7 +594,8 @@ fun LoginScreen(navController: NavHostController, auth: FirebaseAuth, modifier: 
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     // Sign in success
-                                    val currentUser = auth.currentUser
+                                    userEmailG = email
+                                    userPasswordG = password
                                     // Navigate to main menu
                                     navController.navigate("menu")
                                 } else {
