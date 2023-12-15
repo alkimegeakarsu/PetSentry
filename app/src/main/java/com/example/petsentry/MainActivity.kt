@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
                         // Cancel discovery
                         bluetoothAdapter?.cancelDiscovery()
                         // UUID
-                        val MY_UUID: UUID = UUID.fromString("00001801-0000-1000-8000-00805F9B34FB")
+                        val MY_UUID: UUID = UUID.fromString("1a268a02-4069-4e71-9c7a-a1a6d95a4d20")
                         // Get BluetoothSocket
                         var socket: BluetoothSocket? = null
                         try {
@@ -135,18 +135,18 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "BluetoothSocket error", Toast.LENGTH_SHORT).show()
                         }
                         // Connect
-                        socket?.connect()
-//                        try {
-//                            socket?.connect()
-//                        } catch (connectException: IOException) {
-//                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
-//                            try {
-//                                socket?.close()
-//                            } catch (closeException: IOException) {
-//                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
-//                                closeException.printStackTrace()
-//                            }
-//                        }
+                        //socket?.connect()
+                        try {
+                            socket?.connect()
+                        } catch (connectException: IOException) {
+                            Toast.makeText(context, "socket?.connect() error", Toast.LENGTH_SHORT).show()
+                            try {
+                                socket?.close()
+                            } catch (closeException: IOException) {
+                                Toast.makeText(context, "socket?.close() error", Toast.LENGTH_SHORT).show()
+                                closeException.printStackTrace()
+                            }
+                        }
                         // Send data and close everything
                         val text = "SSID: $wifiSSID, Password: $wifiPassword"
                         val outputStream: OutputStream? = socket?.outputStream
@@ -806,7 +806,7 @@ fun LivestreamScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
                 .padding(top = 50.dp, bottom = 100.dp)
         )
         // Declare a string that contains a url
-        val mUrl = "https://player.vimeo.com/video/891370886"
+        val mUrl = "https://vimeo.com/user211082657"
 
         // Adding a WebView inside AndroidView
         // with layout as full screen
