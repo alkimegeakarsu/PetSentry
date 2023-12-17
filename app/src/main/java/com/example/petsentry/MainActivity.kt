@@ -714,7 +714,6 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
     var foodWeight by remember { mutableIntStateOf(0) }
     var waterLevel by remember { mutableStateOf("Low") }
     var fillTo by remember { mutableStateOf("") }
-    val context = LocalContext.current
 
     LaunchedEffect(key1 = dbRef) {
         dbRef.child("Food").child("bowl_weight").addValueEventListener(object : ValueEventListener {
@@ -801,7 +800,7 @@ fun SensorScreen(dbRef: DatabaseReference, modifier: Modifier = Modifier) {
                 Button(
                     onClick = {
                         if (fillTo.toIntOrNull() == null) {
-                            Toast.makeText(context, "Invalid input! Try again.", Toast.LENGTH_SHORT).show()
+                            dbRef.child("Food").child("fill_food_now").setValue(1)
                         } else if (fillTo.toIntOrNull()!! > 0) {
                             dbRef.child("Food").child("target_weight").setValue(fillTo.toInt())
                             dbRef.child("Food").child("fill_food_now").setValue(1)
